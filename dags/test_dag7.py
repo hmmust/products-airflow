@@ -16,13 +16,12 @@ def my_dag():
         response.raise_for_status()
         customers = response.json()
         customers_df = pd.DataFrame(customers)
-        print(customers_df)
-        return {"success":True}
+        return customers_df
     @task
-    def print_second_hello(inputs):
-        print("This is the Second Print!",inputs.get("success"))
+    def transform_customer(inputs):
+        print(inputs)
     task1=extract_customer_github() 
-    task1 >> print_second_hello(task1)
+    task1 >> transform_customer(task1)
 my_dag()
 
 
