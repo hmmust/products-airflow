@@ -1,16 +1,21 @@
 from datetime import datetime, timedelta
 from airflow.decorators import dag,task
 from airflow.providers.http.hooks.http import HttpHook
+from airflow.providers.http.sensors.http import HttpSensor
+
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 import pandas as pd
 from io import StringIO
 
-@dag(dag_id="artist_etl",start_date=datetime(2026,4,5),
+@dag(dag_id="artist_etl_v2",start_date=datetime(2026,4,5),
          catchup=False, schedule=timedelta(days=1),
          default_args={"owner":"Hossam Musta"},
          tags=["Artists pipeline","UOP"])
 def my_dag():
     FILES= ["/artists/artists-01.csv.json","/artists/artists-01.csv.json"]
+    wait_for_schema = HttpSensor(task_id="wait_schema",http_conn_id="github_artists",
+                                 endpoint="schemas.json",mode="poke",poke_interval=10,timeout=600)
+
     @task
     def extract_schema():
         customerHook = HttpHook (http_conn_id="github_artists",
@@ -41,6 +46,7 @@ def my_dag():
                     if_exists="append")
 
     task1 = extract_schema()
+    wait_for_schema >> task1
     task1>> extract_artists(task1)
 my_dag()
 
